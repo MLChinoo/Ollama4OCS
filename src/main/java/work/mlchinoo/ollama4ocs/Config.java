@@ -1,36 +1,19 @@
 package work.mlchinoo.ollama4ocs;
 
 import lombok.Getter;
-import work.mlchinoo.ollama4ocs.javabeans.FormatStructure;
-import work.mlchinoo.ollama4ocs.javabeans.QuestionInfo;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class Config {
-    @Getter
-    private static final String host = "http://localhost:11434";
-    @Getter
-    private static final String model = "deepseek-r1:7b";
-    @Getter
-    private static final Map<String, QuestionInfo> typeSheet = Map.of(
+    @Getter private static final String host = "http://localhost:11434";
+    @Getter private static final String model = "deepseek-r1:7b";
+    /*@Getter private static final Map<String, QuestionInfo> typeSheet = Map.of(
             "single", new QuestionInfo(
-                    "单选题", "\n回答要求:请返回一个包含多个元素的数组,第一个元素只能回答选项本身,第二个元素需填入回答理由\n例子:[\"A.这是示例选项\",\"因为这里是回答示例，假设这道题目选择A，所以对于这个示例给出答案A\"](此题的答案有且仅有一个选项)\n",
+                    "单选题", "\n回答要求:请直接回答选项本身，包含选项序号与选项内容。\n回答示例:\"A.这是示例选项\"\n(重要提醒：此题的答案有且仅有一个选项！！)\n",
                     new FormatStructure(new HashMap<>() {{
-                        put("answer", new HashMap<String, Object>() {
+                        put("answer-with-only-option-label-and-text-without-any-explanation", new HashMap<String, Object>() {
                             {
                                 put("type", "string");
-                                put("description", "答题选项，只返回选项本身，例如 'A.这是示例选项'");
-                                put("pattern", "^[A-Z]\\..+");
                             }
                         });
-                        put("reasons", new HashMap<String, Object>() {
-                            {
-                                put("type", "string");
-                                put("description", "回答理由，说明选择该选项的原因");
-                            }
-                        });
-
                     }}))
             , "multiple", new QuestionInfo(
                     "多选题", "\n回答要求:请返回一个包含若干元素的数组,第一个元素需填入多选题的多个选项,并用#号隔离,后续若干元素则需填入选择对应选项的理由,,\n多选题例子:[\"选项1#选项2#...#选项n\",\"选择选项1的理由\",\"选择选项2的理由\",...,\"选择选项n的理由\"](最少为俩个选项,选项和选择理由都要在一个数组中,被选择的选项们必须单独放在数组的第一个元素中并以#号隔开,一次回答最多返回一个数组)\n",
@@ -99,5 +82,5 @@ public class Config {
                             }
                         });
                     }}))
-    );
+    );*/
 }

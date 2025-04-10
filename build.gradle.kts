@@ -24,5 +24,5 @@ dependencies {
     implementation("com.google.code.gson:gson:2.12.1")
     // implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.apache.commons:commons-text:1.13.0")
-    implementation("io.github.ollama4j:ollama4j:1.0.93")
+    implementation("io.github.ollama4j:ollama4j:1.0.100")
 }

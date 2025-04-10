@@ -2,19 +2,13 @@ package work.mlchinoo.ollama4ocs;
 
 import com.google.gson.Gson;
 import io.github.ollama4j.OllamaAPI;
-import io.github.ollama4j.exceptions.OllamaBaseException;
-import io.github.ollama4j.models.response.OllamaResult;
-import io.github.ollama4j.utils.OptionsBuilder;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
-import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import work.mlchinoo.ollama4ocs.javabeans.OCSResponse;
-import work.mlchinoo.ollama4ocs.javabeans.QuestionInfo;
+import work.mlchinoo.ollama4ocs.gson.OCSResponse;
+import work.mlchinoo.ollama4ocs.question.Question;
 
-import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class Main {
@@ -23,43 +17,33 @@ public class Main {
     private static final OllamaAPI api = new OllamaAPI(Config.getHost());
 
     public static void handle(Context ctx) {
-        String question = ctx.queryParam("question");
-        String type = ctx.queryParam("type");
-        String options = ctx.queryParam("options");
+        String _type = ctx.queryParam("type");
+        String _question = ctx.queryParam("question");
+        String _options = ctx.queryParam("options");
 
-        QuestionInfo questionInfo = Config.getTypeSheet().getOrDefault(type, Config.getTypeSheet().get("single"));
-        StringBuilder promptBuilder = new StringBuilder();
-        promptBuilder.append("这道题的类型是:[%s]\n题目为:%s".formatted(questionInfo.getType(), question));
-        if (List.of("单选题", "多选题", "判断题").contains(questionInfo.getType())) {
-            promptBuilder.append("\n选项为:\n%s".formatted(options.replaceAll("\n\n", "")));
-        }
-        promptBuilder.append(questionInfo.getQuestionPrompt());
+        Question question = new Question(_type, _question, _options);
+        logger.debug("{} Request: {}", ctx, question.getQuestion());
 
-        //CompletableFuture.supplyAsync(() -> {
-        String result1 = null;
-        try {
-            OllamaResult result = api.generate(Config.getModel(), promptBuilder.toString(), false, new OptionsBuilder()
-                    .setCustomOption("format", gson.toJson(questionInfo.getFormat().getFormat()))
-                    .build());
-            String response = StringEscapeUtils.unescapeJava(result.getResponse())
-                    // DeepSeek-R1 等推理模型会在开头输出<think>思考段，需要去除
-                    .replaceFirst("<think>[\\s\\S]*?</think>", "")
-                    .replaceAll("\\n", "").strip();
-            //return response;
-            result1 = response;
-        } catch (OllamaBaseException | InterruptedException | IOException e) {
-            logger.error(e.getMessage());
-        }
-        //return null;
-        //}).thenAccept(result1 -> {
-        logger.info(result1);
-        ctx.result(gson.toJson(OCSResponse.builder()
-                .GPTStatus(200)
-                .title(question)
-                .answer(result1)
-                .build()));
-    //});
-
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                String answer = question.getHandler().generate(api);
+                logger.debug("{} Response: {}", ctx, answer);
+                return OCSResponse.builder()
+                        .GPTStatus(200)
+                        .title(question.getQuestion())
+                        .answer(answer)
+                        .build();
+            } catch (Exception e) {
+                logger.error("{} failed: {}", ctx, e.getMessage());
+                return OCSResponse.builder()
+                        .GPTStatus(400)
+                        .title(question.getQuestion())
+                        .answer(e.getMessage())
+                        .build();
+            }
+        }).thenAccept(response -> {
+            ctx.result(gson.toJson(response));
+        });
     }
 
     public static void main(String[] args) {
