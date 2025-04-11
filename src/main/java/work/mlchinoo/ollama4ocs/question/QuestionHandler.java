@@ -6,6 +6,7 @@ import io.github.ollama4j.exceptions.OllamaBaseException;
 import io.github.ollama4j.models.response.OllamaResult;
 import lombok.Getter;
 import work.mlchinoo.ollama4ocs.Config;
+import work.mlchinoo.ollama4ocs.question.handlers.*;
 
 import java.io.IOException;
 
@@ -16,6 +17,17 @@ public abstract class QuestionHandler {
     protected String typeTranslated;
     protected String prompt;
     protected FormatStructure format;
+
+    public static QuestionHandler getHandler(Question question) {
+        return switch (question.getType()) {
+            case "single" -> new SingleChoiceHandler(question);
+            case "multiple" -> new MultipleChoicesHandler(question);
+            case "judgement" -> new JudgementHandler(question);
+            case "fill-blank" -> new FillBlankHandler(question);
+            case "completion" -> new CompletionHandler(question);
+            default -> throw new IllegalArgumentException("Unsupported question type: " + question.getType());
+        };
+    }
 
     public QuestionHandler(Question question, String typeTranslated, String prompt, FormatStructure format) {
         this.question = question;

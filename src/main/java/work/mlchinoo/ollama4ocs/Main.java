@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import work.mlchinoo.ollama4ocs.gson.OCSResponse;
 import work.mlchinoo.ollama4ocs.question.Question;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 public class Main {
@@ -17,39 +18,56 @@ public class Main {
     private static final OllamaAPI api = new OllamaAPI(Config.getHost());
 
     public static void handle(Context ctx) {
-        String _type = ctx.queryParam("type");
-        String _question = ctx.queryParam("question");
+        String _type = Objects.requireNonNull(ctx.queryParam("type"));
+        String _question = Objects.requireNonNull(ctx.queryParam("question"));
         String _options = ctx.queryParam("options");
 
         Question question = new Question(_type, _question, _options);
         logger.debug("{} Request: {}", ctx, question.getQuestion());
 
-        CompletableFuture.supplyAsync(() -> {
-            try {
-                String answer = question.getHandler().generate(api);
-                logger.debug("{} Response: {}", ctx, answer);
-                return OCSResponse.builder()
-                        .GPTStatus(200)
-                        .title(question.getQuestion())
-                        .answer(answer)
-                        .build();
-            } catch (Exception e) {
-                logger.error("{} failed: {}", ctx, e.getMessage());
-                return OCSResponse.builder()
-                        .GPTStatus(400)
-                        .title(question.getQuestion())
-                        .answer(e.getMessage())
-                        .build();
-            }
-        }).thenAccept(response -> {
-            ctx.result(gson.toJson(response));
-        });
+//        ctx.future(() -> CompletableFuture.supplyAsync(() -> {
+//            try {
+//                String answer = question.getHandler().generate(api);
+//                logger.debug("{} Response: {}", ctx, answer);
+//                return OCSResponse.builder()
+//                        .GPTStatus(200)
+//                        .title(question.getQuestion())
+//                        .answer(answer)
+//                        .build();
+//            } catch (Exception e) {
+//                logger.error("{} failed: {}", ctx, e.getMessage());
+//                return OCSResponse.builder()
+//                        .GPTStatus(400)
+//                        .title(question.getQuestion())
+//                        .answer(e.getMessage())
+//                        .build();
+//            }
+//        }).thenApply(gson::toJson));
+
+        OCSResponse response;
+        try {
+            String answer = question.getHandler().generate(api);
+            logger.debug("{} Response: {}", ctx, answer);
+            response =  OCSResponse.builder()
+                    .GPTStatus(200)
+                    .title(question.getQuestion())
+                    .answer(answer)
+                    .build();
+        } catch (Exception e) {
+            logger.error("{} failed: {}", ctx, e.getMessage());
+            response =  OCSResponse.builder()
+                    .GPTStatus(400)
+                    .title(question.getQuestion())
+                    .answer(e.getMessage())
+                    .build();
+        }
+        ctx.result(gson.toJson(response));
     }
 
     public static void main(String[] args) {
         logger.info("Pinging Ollama API on %s ...".formatted(Config.getHost()));
         // api.setVerbose(true);
-        api.setRequestTimeoutSeconds(120);
+        api.setRequestTimeoutSeconds(60);
         logger.info("Is Ollama server running: %b".formatted(api.ping()));
         logger.info("Starting Ollama4OCS...");
         try {
